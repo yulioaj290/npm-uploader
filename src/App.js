@@ -12,24 +12,58 @@ class App extends React.Component {
             weight: 50,
             ziplevel: 5,
             unzip: true,
+            gitclon: false,
+            deps: "",
             output: "Sample output .............",
-            error: ""
+            error: "",
+            success: false
         }
     }
 
     handleChange = (e) => {
-        const id = e.target.id;
-        const value = id === "unzip" ? e.target.checked : e.target.value;
+        const name = e.target.name;
+        const value = ((name === "unzip" || name === "gitclon") ? e.target.checked : e.target.value);
         this.setState(prevstate => {
             const newState = {...prevstate};
-            newState[id] = value;
+            newState[name] = value;
             return newState;
         });
     };
 
     handleSubmit = (e) => {
         e.preventDefault();
-        this.validate();
+
+        if (this.validate()) {
+            const data = {
+                urllist: this.state.urllist.split(/\r?\n/),
+                prefix: this.state.prefix,
+                weight: this.state.weight,
+                ziplevel: this.state.ziplevel,
+                unzip: this.state.unzip,
+                gitclon: this.state.gitclon,
+                deps: this.state.deps
+            };
+            fetch(process.env.REACT_APP_API_URL + '/npm/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(jsonRes => {
+                    this.setState({output: jsonRes.output, error: jsonRes.error});
+                    if(this.state.error.length <= 0){
+                        this.setState({success: true});
+                    } else{
+                        this.setState({success: false});
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                    this.setState({error: "ERROR: The upload process fail, try again."})
+                });
+        }
     };
 
     validate = () => {
@@ -43,8 +77,16 @@ class App extends React.Component {
             }
         }
 
-        if (!/^[a-zA-Z0-9_-]*$/g.test(this.state.prefix)) {
-            error = `ERROR: Prefix must be only alphanumeric, (_) and (-), without spaces. [${this.state.prefix}]`
+        if (this.state.gitclon && urllist.length > 1) {
+            error = `ERROR: You can download only one GIT repository.`
+        }
+
+        if (!this.state.gitclon && this.state.deps.length > 0) {
+            error = `ERROR: To install dependencies, you need to clone GIT repository.`
+        }
+
+        if (!/^[a-zA-Z0-9-]*$/g.test(this.state.prefix)) {
+            error = `ERROR: Prefix must be only alphanumeric and (-), without spaces. [${this.state.prefix}]`
         }
 
         if (!/^[1-9]\d*$/g.test(this.state.weight)) {
@@ -57,14 +99,17 @@ class App extends React.Component {
 
         if (error.length > 0) {
             this.setState({
-                output: JSON.stringify(urllist) + "\n" + this.state.prefix + "\n" + this.state.weight + "\n" + this.state.ziplevel + "\n" + this.state.unzip + "\n",
-                error: error
+                error: error,
+                output: error
             });
             return false;
         } else {
             this.setState({
+                // output: JSON.stringify(urllist) + "\n" + this.state.prefix + "\n" + this.state.weight + "\n" + this.state.ziplevel + "\n" + this.state.unzip + "\n",
                 error: ""
             });
+
+            // Success!
             return true;
         }
     };
@@ -74,7 +119,7 @@ class App extends React.Component {
     };
 
     render() {
-        const {urllist, prefix, weight, ziplevel, unzip, output, error} = this.state;
+        const {urllist, prefix, weight, ziplevel, unzip, gitclon, deps, output, error, success} = this.state;
 
         return (
             <div className="app">
@@ -94,31 +139,48 @@ class App extends React.Component {
                     <form action="#" onSubmit={this.handleSubmit}>
                         <div className={"form-group"}>
                             <label htmlFor="urllist">URL List <span className={"required"}>*</span></label>
-                            <textarea id={"urllist"} value={urllist} onChange={this.handleChange}
-                                      placeholder={"Enter one valid URL per line"} required></textarea>
+                            <textarea id={"urllist"} name={"urllist"} value={urllist} onChange={this.handleChange}
+                                      placeholder={"Enter one valid URL per line"} required autoFocus/>
                             <p>List of URLs of the resources on Internet. Eg.: http://mi.pagina.com/video.mp4</p>
                         </div>
                         <div className={"form-group"}>
                             <label htmlFor="prefix">Prefix <span className={"required"}>*</span></label>
-                            <input type="text" id={"prefix"} value={prefix} onChange={this.handleChange}
+                            <input type="text" id={"prefix"} name={"prefix"} value={prefix} onChange={this.handleChange}
                                    placeholder={"Prefix of packages"} required/>
                             <p>Package's prefix. Eg.: video-tutorial, library123, photo-book</p>
                         </div>
                         <div className={"form-group"}>
                             <label htmlFor="weight">Chunk's Weight</label>
-                            <input type="number" id={"weight"} value={weight} min={"1"} onChange={this.handleChange}
-                                   defaultValue={"50"}/>
+                            <input type="number" id={"weight"} name={"weight"} value={weight} min={"1"}
+                                   onChange={this.handleChange}/>
                             <p>Chunk's weight in megabytes (MB), 50MB by default. </p>
                         </div>
                         <div className={"form-group"}>
                             <label htmlFor="ziplevel">Compression Level</label>
-                            <input type="number" id={"ziplevel"} value={ziplevel} onChange={this.handleChange}
-                                   defaultValue={"5"} max={"9"} min={"1"}/>
+                            <input type="number" id={"ziplevel"} name={"ziplevel"} value={ziplevel}
+                                   onChange={this.handleChange} max={"9"}
+                                   min={"1"}/>
                             <p>Compression level from 1 to 9, 5 by default. High value means high compression.</p>
                         </div>
                         <div className={"option-group"}>
-                            <input type="checkbox" id={"unzip"} checked={unzip} onChange={this.handleChange}/>
+                            <input type="checkbox" id={"unzip"} name={"unzip"} checked={unzip}
+                                   onChange={this.handleChange}/>
                             <label className={"checkbox-label"} htmlFor="unzip">Auto unzip functions</label>
+                        </div>
+                        <div className={"option-group"}>
+                            <input type="checkbox" id={"gitclon"} name={"gitclon"} checked={gitclon}
+                                   onChange={this.handleChange}/>
+                            <label className={"checkbox-label"} htmlFor="gitclon">Clone GIT Repository</label>
+                        </div>
+                        <div className={"option-group"}>
+                            <p>Install Dependencies:</p>
+                            <input type="radio" id={"depsnpm"} checked={deps === "depsnpm"}
+                                   name={"deps"} value={"depsnpm"} onChange={this.handleChange}/>
+                            <label className={"checkbox-label"} htmlFor="depsnpm">NPM</label>
+                            &nbsp;&nbsp;&nbsp;
+                            <input type="radio" id={"depsyarn"} checked={deps === "depsyarn"}
+                                   name={"deps"} value={"depsyarn"} onChange={this.handleChange}/>
+                            <label className={"checkbox-label"} htmlFor="depsyarn">YARN</label>
                         </div>
                         <div className={"form-group"}>
                             <button type={"submit"}>Upload</button>
@@ -130,7 +192,11 @@ class App extends React.Component {
 
                 <div className={"output"}>
                     <h2>Output</h2>
-                    <p>{output}</p>
+                    <div className={error.length > 0 ? "error" : (success ? "success" : "")}>
+                        <pre>
+                            {output}
+                        </pre>
+                    </div>
                 </div>
             </div>
         );

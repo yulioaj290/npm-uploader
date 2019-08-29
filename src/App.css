@@ -4,6 +4,10 @@ body {
     color: rgba(0, 0, 0, 0.87);
 }
 
+h1 {
+    font-size: 40px;
+}
+
 .app {
     padding: 30px 20px;
     /*width: auto;*/
@@ -104,12 +108,29 @@ hr {
     padding: 0;
 }
 
-.output p {
+.output > div.error {
+    background-color: #ffcdd2;
+    border: 1px solid #f44336;
+}
+
+.output > div.success {
+    background-color: #c8e6c9;
+    border: 1px solid #4caf50;
+}
+
+.output > div {
     background-color: #cfd8dc;
+    border: 1px solid #607d8b;
     padding: 20px;
     text-align: left;
     font-family: "Courier New";
     color: rgba(0,0,0,0.6);
+    overflow-x: scroll;
+    margin-top: 20px;
+}
+
+.output > div p {
+    width: 100%;
 }
 
 .form .error {
