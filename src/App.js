@@ -16,9 +16,83 @@ class App extends React.Component {
             deps: "",
             output: "Sample output .............",
             error: "",
-            success: false
+            success: false,
+            packages: []
         }
     }
+
+    componentDidMount() {
+        this.packageList();
+    }
+
+    // componentDidUpdate() {
+    //     this.packageList();
+    // }
+
+    packageList = () => {
+        fetch(process.env.REACT_APP_API_URL + '/npm/packages', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(jsonRes => {
+                this.setState({
+                    packages: jsonRes.packages,
+                    error: (
+                        jsonRes.error.length > 0
+                            ? jsonRes.error
+                            : this.state.error
+                    )
+                });
+            })
+            .catch((err) => {
+                if (err.length > 0) {
+                    console.log(err);
+                    this.setState({error: err});
+                    this.setState({error: "ERROR: Was not possible to read the \"remove.lock\" file."});
+                }
+            });
+    };
+
+    handleUnpush = (pack) => {
+        fetch(process.env.REACT_APP_API_URL + '/npm/unpush', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({pack: pack})
+        })
+            .then(response => response.json())
+            .then(jsonRes => {
+                this.setState({
+                    output: jsonRes.output,
+                    error: jsonRes.error,
+                    packages: (typeof jsonRes.packages !== "undefined" ? jsonRes.packages : this.state.packages)
+                });
+
+                if (this.state.error.length <= 0) {
+                    this.setState({
+                        success: true,
+                        urllist: "",
+                        prefix: "",
+                        weight: 50,
+                        ziplevel: 5,
+                        unzip: true,
+                        gitclon: false
+                    });
+                } else {
+                    this.setState({success: false});
+                }
+            })
+            .catch((err) => {
+                if (err.length > 0) {
+                    console.log(err);
+                    this.setState({error: "ERROR: The unpublish process fail, try again."})
+                }
+            });
+    };
 
     handleChange = (e) => {
         const name = e.target.name;
@@ -52,16 +126,32 @@ class App extends React.Component {
             })
                 .then(response => response.json())
                 .then(jsonRes => {
-                    this.setState({output: jsonRes.output, error: jsonRes.error});
-                    if(this.state.error.length <= 0){
-                        this.setState({success: true});
-                    } else{
+                    this.setState({
+                        output: jsonRes.output,
+                        error: jsonRes.error,
+                        packages: (typeof jsonRes.packages !== "undefined" ? jsonRes.packages : this.state.packages)
+                    });
+
+                    // console.log(this.state.error);
+                    if (this.state.error.length <= 0) {
+                        this.setState({
+                            success: true,
+                            urllist: "",
+                            prefix: "",
+                            weight: 50,
+                            ziplevel: 5,
+                            unzip: true,
+                            gitclon: false
+                        });
+                    } else {
                         this.setState({success: false});
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
-                    this.setState({error: "ERROR: The upload process fail, try again."})
+                    if (err.length > 0) {
+                        console.log(err);
+                        this.setState({error: "ERROR: The upload process fail, try again."})
+                    }
                 });
         }
     };
@@ -119,7 +209,7 @@ class App extends React.Component {
     };
 
     render() {
-        const {urllist, prefix, weight, ziplevel, unzip, gitclon, deps, output, error, success} = this.state;
+        const {urllist, prefix, weight, ziplevel, unzip, gitclon, deps, output, error, success, packages} = this.state;
 
         return (
             <div className="app">
@@ -189,6 +279,39 @@ class App extends React.Component {
                 </div>
 
                 <hr/>
+
+                {
+                    typeof packages !== "undefined" && packages.length > 0 ?
+                        (
+                            <div className={"packages"}>
+                                <h2>Unpublish packages from NPMJS.com</h2>
+                                {
+                                    packages.map((pack, i) => {
+                                        return (
+                                            <button key={i} onClick={() => this.handleUnpush(pack)}>
+                                                {pack.split(/_/)[0]}
+                                            </button>
+                                        );
+                                    })
+                                }
+
+                                {
+                                    packages.length >= 2 ?
+                                        (
+                                            <div className={"all"}>
+                                                <button onClick={() => this.handleUnpush("")}>
+                                                    Unpublish all packages [{packages.length}]
+                                                </button>
+                                            </div>
+                                        )
+                                        : ""
+                                }
+                                <hr/>
+                            </div>
+                        )
+                        :
+                        ""
+                }
 
                 <div className={"output"}>
                     <h2>Output</h2>
