@@ -113,36 +113,4 @@ function _listPackages(callback) {
     });
 }
 
-/*
-
-https://dragones.uci.cu
-https://gladiadores.uci.cu
-https://periodico.uci.cu
-
-https://ftp.prod.uci.cu/pub/Libros/Xbee/WirelessSensorNetwork.pdf
-https://ftp.prod.uci.cu/pub/Libros/Xbee/XBee.pdf
-https://ftp.prod.uci.cu/pub/Libros/Xbee/ZigBee-Libro.pdf
-
-* */
-//
-// router.get('/details', async (req, res) => {
-//     try {
-//         await userModel.findOne({
-//             where: {
-//                 id: req.headers.id
-//             }
-//         }).then((user) => {
-//             if (!user) {
-//                 return res.send({message: 'User not found!'});
-//             } else {
-//                 return res.send({user: user});
-//             }
-//         }).catch((err) => {
-//             return res.send(err);
-//         });
-//     } catch (err) {
-//         return res.send(err);
-//     }
-// });
-
 module.exports = router;
